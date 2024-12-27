@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
-import pyautogui
 from pytubefix import YouTube, Channel, Playlist, Search
+from tkinter import filedialog
 
 
 # Function to handle download type
@@ -95,6 +95,48 @@ def on_search():
         data = display_video_details_search(search_input)
 
     add_to_table(data)
+    
+def choose_location():
+    folder = filedialog.askdirectory()
+    if folder:
+        download_input.delete(0, tk.END)
+        download_input.insert(0, folder)
+    return folder
+
+def download_video():
+    selected_items = treeview.selection()
+    if selected_items:
+        for item in selected_items:
+            row_data = treeview.item(item)["values"]
+            url = row_data[1]
+            save_path = download_input.get()
+            if not save_path:
+                save_path = choose_location()
+            if save_path:
+                download_selected_video(url, save_path)
+    else:
+        selected_items = treeview.get_children()
+        for item in selected_items:
+            row_data = treeview.item(item)["values"]
+            url = row_data[1]
+            save_path = download_input.get()
+            if not save_path:
+                save_path = choose_location()
+            if save_path:
+                download_selected_video(url, save_path)
+
+def download_selected_video(url, save_path):
+    try:
+        yt = YouTube(url)
+        streams = yt.streams.filter(file_extension="mp4")
+        if quality_var.get() == "Best quality":
+            res = streams.get_highest_resolution()
+        else:
+            res = streams.get_lowest_resolution()
+        res = streams.get_highest_resolution()
+        res.download(output_path=save_path)
+    except Exception as e:
+        print(e)
 
 # Create the main window
 root = tk.Tk()
@@ -148,16 +190,16 @@ label_quality = ttk.Label(root, text="Select quality:")
 
 quality_var = tk.StringVar()
 quality_dropdown = ttk.Combobox(root, textvariable=quality_var)
-quality_dropdown["values"] = ("1080p", "720p")
+quality_dropdown["values"] = ("Best quality", "Lowest quality")
 quality_dropdown["state"] = "readonly"
-quality_var.set("720p")
+quality_var.set("Best quality")
 
 # filedialog to select download location
 download_input = ttk.Entry(root, width=25)
-button_location = ttk.Button(root, text="Choose location")
+button_location = ttk.Button(root, text="Choose location", command=choose_location)
 
 # download button
-button_download = ttk.Button(root, text="Download")
+button_download = ttk.Button(root, text="Download", command=  download_video)
 
 # Bind event when dropdown value changes
 format_dropdown.bind("<<ComboboxSelected>>", on_format_type)
