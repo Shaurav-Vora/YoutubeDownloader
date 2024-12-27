@@ -2,6 +2,17 @@ import tkinter as tk
 from tkinter import ttk
 import pyautogui
 
+# Function to handle download type
+def on_format_type(event):
+    # Get the selected download type
+    download_type = format_var.get()
+    print(f"Selected download type: {download_type}")
+    if download_type == "Audio":
+        quality_dropdown.config(state="disabled")
+    else:
+        quality_dropdown.config(state="readonly")
+
+
 # Create the main window
 root = tk.Tk()
 root.title("YouTube Downloader")
@@ -62,6 +73,9 @@ button_location = ttk.Button(root, text="Choose location")
 
 # download button
 button_download = ttk.Button(root, text="Download")
+
+# Bind event when dropdown value changes
+format_dropdown.bind("<<ComboboxSelected>>", on_format_type)
 
 # Grid layout
 label_format.grid(row=1, column=0)
