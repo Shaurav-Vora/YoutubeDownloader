@@ -12,6 +12,24 @@ def on_format_type(event):
     else:
         quality_dropdown.config(state="readonly")
 
+# Function to handle video input type
+def add_placeholder(entry, placeholder):
+    entry.insert(0, placeholder)
+    entry.config(foreground='grey')
+
+    def on_focus_in(event):
+        if entry.get() == placeholder:
+            entry.delete(0, tk.END)
+            entry.config(foreground='black')
+
+    def on_focus_out(event):
+        if not entry.get():
+            entry.insert(0, placeholder)
+            entry.config(foreground='grey')
+
+    entry.bind("<FocusIn>", on_focus_in)
+    entry.bind("<FocusOut>", on_focus_out)
+        
 
 # Create the main window
 root = tk.Tk()
@@ -38,6 +56,8 @@ radio_var.set("URL")
 # Input url of video, playlist, channel, or search keywords
 entry = ttk.Entry(root, width=50)
 button_search = ttk.Button(root, text="Search")
+
+add_placeholder(entry, "Enter link for individual URL, Playlist, Channel, or keywords")
 
 # Table in form of treeview to display video details
 
