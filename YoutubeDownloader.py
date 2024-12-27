@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
 import pyautogui
+from pytubefix import YouTube, Channel, Playlist, Search
+
 
 # Function to handle download type
 def on_format_type(event):
@@ -30,6 +32,69 @@ def add_placeholder(entry, placeholder):
     entry.bind("<FocusIn>", on_focus_in)
     entry.bind("<FocusOut>", on_focus_out)
         
+def getVidLength(yt: YouTube):
+    vid_length_seconds = yt.length
+    vid_length_minutes = f"{int(vid_length_seconds / 60)}:{vid_length_seconds % 60:.2f}"
+    return vid_length_minutes
+
+def display_video_details_individual(url):
+    yt = YouTube(url)
+    yt_title = yt.title
+    length = getVidLength(yt)
+    return [(url, yt_title, length)]
+
+def display_video_details_playlist(url):
+    p = Playlist(url)
+    all_vid_data = []
+    for url in p.videos:
+        my_url = url.watch_url
+        yt = YouTube(my_url)
+        yt_title = yt.title
+        length = getVidLength(yt)
+        all_vid_data.append((my_url, yt_title, length))
+    return all_vid_data
+
+def display_video_details_channel(url):
+    c = Channel(url)
+    all_vid_data = []
+    for url in c.video_urls:
+        my_url = url.watch_url
+        yt = YouTube(my_url)
+        yt_title = yt.title
+        length = getVidLength(yt)
+        all_vid_data.append((my_url, yt_title, length))
+    return all_vid_data
+
+def display_video_details_search(keywords):
+    results = Search(keywords)
+    all_vid_data = []
+    for video in results.videos:
+        if (len(all_vid_data) == 15):
+            break
+        my_url = video.watch_url
+        yt = YouTube(my_url)
+        yt_title = yt.title
+        length = getVidLength(yt)
+        all_vid_data.append((my_url, yt_title, length))
+    return all_vid_data
+
+def add_to_table(data):
+    for idx, data in enumerate(data):
+        treeview.insert("", "end", values=(idx+1, data[0], data[1], data[2]))
+
+def on_search():
+    radio_selected = radio_var.get()
+    search_input = entry.get()
+    if radio_selected == "URL":
+        data = display_video_details_individual(search_input)
+    elif radio_selected == "Playlist":
+        data = display_video_details_playlist(search_input)
+    elif radio_selected == "Channel":
+        data = display_video_details_channel(search_input)
+    else:
+        data = display_video_details_search(search_input)
+
+    add_to_table(data)
 
 # Create the main window
 root = tk.Tk()
@@ -55,7 +120,7 @@ radio_var.set("URL")
 
 # Input url of video, playlist, channel, or search keywords
 entry = ttk.Entry(root, width=50)
-button_search = ttk.Button(root, text="Search")
+button_search = ttk.Button(root, text="Search",command=on_search)
 
 add_placeholder(entry, "Enter link for individual URL, Playlist, Channel, or keywords")
 
@@ -112,7 +177,6 @@ quality_dropdown.grid(row=6, column=1)
 download_input.grid(row=7, column=0, columnspan=2)
 button_location.grid(row=7, column=2)
 button_download.grid(row=8, column=1)
-
 
 # Start the main loop
 
