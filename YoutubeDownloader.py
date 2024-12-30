@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from pytubefix import YouTube, Channel, Playlist, Search
 from tkinter import filedialog
+import threading
 
 # Function to handle download type
 def on_format_type(event):
@@ -33,48 +34,55 @@ def add_placeholder(entry, placeholder):
         
 def getVidLength(yt: YouTube):
     vid_length_seconds = yt.length
-    vid_length_minutes = f"{int(vid_length_seconds / 60)}:{vid_length_seconds % 60:.2f}"
+    vid_length_minutes = f"{int(vid_length_seconds / 60)}:{vid_length_seconds % 60:.0f}"
     return vid_length_minutes
 
-def display_video_details_individual(url):
+def return_video_details(url):
     yt = YouTube(url)
     yt_title = yt.title
     length = getVidLength(yt)
-    return [(url, yt_title, length)]
+    return (url, yt_title, length)
+
+
+def display_video_details_individual(url):
+    all_vid_data = []
+    all_vid_data.append(return_video_details(url))
+    return all_vid_data
 
 def display_video_details_playlist(url):
     p = Playlist(url)
+    num_vids = p.length
     all_vid_data = []
     for url in p.videos:
+        loading_percentage = (len(all_vid_data) / num_vids) * 100
+        progress_bar["value"] = loading_percentage
         my_url = url.watch_url
-        yt = YouTube(my_url)
-        yt_title = yt.title
-        length = getVidLength(yt)
-        all_vid_data.append((my_url, yt_title, length))
+        data = return_video_details(my_url)
+        all_vid_data.append(data)
     return all_vid_data
 
 def display_video_details_channel(url):
     c = Channel(url)
+    num_vids = c.length
     all_vid_data = []
     for url in c.video_urls:
+        loading_percentage = (len(all_vid_data) / num_vids) * 100
+        progress_bar["value"] = loading_percentage
         my_url = url.watch_url
-        yt = YouTube(my_url)
-        yt_title = yt.title
-        length = getVidLength(yt)
-        all_vid_data.append((my_url, yt_title, length))
+        all_vid_data.append(return_video_details(my_url))
     return all_vid_data
 
 def display_video_details_search(keywords):
     results = Search(keywords)
+    num_vids = 15
     all_vid_data = []
     for video in results.videos:
+        loading_percentage = (len(all_vid_data) / num_vids) * 100
+        progress_bar["value"] = loading_percentage
         if (len(all_vid_data) == 15):
             break
         my_url = video.watch_url
-        yt = YouTube(my_url)
-        yt_title = yt.title
-        length = getVidLength(yt)
-        all_vid_data.append((my_url, yt_title, length))
+        all_vid_data.append(return_video_details(my_url))
     return all_vid_data
 
 def add_to_table(data):
@@ -82,18 +90,30 @@ def add_to_table(data):
         treeview.insert("", "end", values=(idx+1, data[0], data[1], data[2]))
 
 def on_search():
+    progress_bar.grid(row=7, column=0, columnspan=4, padx=10, pady=10, sticky="ew")
     radio_selected = radio_var.get()
     search_input = entry.get()
-    if radio_selected == "URL":
-        data = display_video_details_individual(search_input)
-    elif radio_selected == "Playlist":
-        data = display_video_details_playlist(search_input)
-    elif radio_selected == "Channel":
-        data = display_video_details_channel(search_input)
-    else:
-        data = display_video_details_search(search_input)
+    on_clear()
+    
+    def search_thread():
+        if radio_selected == "URL":
+            data = display_video_details_individual(search_input)
+        elif radio_selected == "Playlist":
+            data = display_video_details_playlist(search_input)
+        elif radio_selected == "Channel":
+            data = display_video_details_channel(search_input)
+        else:
+            data = display_video_details_search(search_input)
 
-    add_to_table(data)
+        add_to_table(data)
+        progress_bar.stop()  # Stop progress bar once data is loaded
+        progress_bar.grid_forget()  # Hide progress bar after stopping
+
+    # Start search in a separate thread to avoid blocking the UI
+    threading.Thread(target=search_thread, daemon=True).start()
+
+def on_clear():
+    treeview.delete(*treeview.get_children())
     
 def choose_location():
     folder = filedialog.askdirectory()
@@ -172,12 +192,13 @@ radio_var.set("URL")
 # Input url of video, playlist, channel, or search keywords
 entry = ttk.Entry(root, width=50)
 button_search = ttk.Button(root, text="Search", command=on_search)
+button_clear = ttk.Button(root, text="Clear table", command = on_clear)
 
 add_placeholder(entry, "Enter link for individual URL, Playlist, Channel, or keywords")
 
 # Table in form of treeview to display video details
 
-columns = ("#", "URL", "Title", "Length")
+columns = ("#", "URL", "Title", "Length (minutes)")
 
 # Create the Treeview widget (table) with extended selection mode
 treeview = ttk.Treeview(root, columns=columns, show="headings", selectmode="extended")
@@ -186,17 +207,17 @@ treeview = ttk.Treeview(root, columns=columns, show="headings", selectmode="exte
 treeview.heading("#", text="No.")
 treeview.heading("URL", text="URL")
 treeview.heading("Title", text="Title")
-treeview.heading("Length", text="Length")
+treeview.heading("Length (minutes)", text="Length (minutes)")
 
 treeview.column("#", anchor="center", width=50, stretch=False)
-treeview.column("URL", anchor="w", width=200)
+treeview.column("URL", anchor="w", width=0, stretch=False)
 treeview.column("Title", anchor="w", width=200)
-treeview.column("Length", anchor="center", width=80, stretch=False)
+treeview.column("Length (minutes)", anchor="center", width=150, stretch=False)
 
-# Add Scrollbars
-scrollbar = ttk.Scrollbar(root, orient="vertical", command=treeview.yview)
-treeview.configure(yscroll=scrollbar.set)
-scrollbar.grid(row=5, column=4, sticky="ns")
+# # Add Scrollbars
+# scrollbar = ttk.Scrollbar(root, orient="vertical", command=treeview.yview)
+# treeview.configure(yscroll=scrollbar.set)
+# scrollbar.grid(row=5, column=4, sticky="ns")
 
 # Label and dropdown to select video quality
 label_quality = ttk.Label(root, text="Select quality:")
@@ -214,6 +235,9 @@ button_location = ttk.Button(root, text="Choose location", command=choose_locati
 # download button
 button_download = ttk.Button(root, text="Download", command=download_video)
 
+# Progress bar
+progress_bar = ttk.Progressbar(root, mode="determinate", orient="horizontal",length=200)
+
 # Bind event when dropdown value changes
 format_dropdown.bind("<<ComboboxSelected>>", on_format_type)
 
@@ -224,8 +248,9 @@ radio_url.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 radio_playlist.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 radio_channel.grid(row=1, column=2, padx=10, pady=5, sticky="w")
 radio_search.grid(row=1, column=3, padx=10, pady=5, sticky="w")
-entry.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
-button_search.grid(row=2, column=3, padx=10, pady=10, sticky="ew")
+entry.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
+button_search.grid(row=2, column=2, padx=10, pady=10, sticky="ew")
+button_clear.grid(row=2, column=3, padx=10, pady=10, sticky="ew")
 treeview.grid(row=3, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
 label_quality.grid(row=4, column=0, padx=10, pady=5, sticky="w")
 quality_dropdown.grid(row=4, column=1, padx=10, pady=5, sticky="w")
@@ -241,5 +266,19 @@ root.grid_columnconfigure(3, weight=1)
 root.grid_rowconfigure(3, weight=1)
 
 # Set the window size
-root.geometry("800x600")
+# Set window dimensions
+window_width = 1000
+window_height = 700
+
+# Get screen dimensions
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
+
+# Calculate position
+x = (screen_width // 2) - (window_width // 2)
+y = (screen_height // 2) - (window_height // 2)
+
+# Set geometry (width x height + x_offset + y_offset)
+root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+root.resizable(False, False)  # Prevent window resizing
 root.mainloop()
