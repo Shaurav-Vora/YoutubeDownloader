@@ -251,7 +251,7 @@ label_quality.grid(row=4, column=0, padx=10, pady=5, sticky="w")
 quality_dropdown.grid(row=4, column=1, padx=10, pady=5, sticky="w")
 download_input.grid(row=4, column=2, columnspan=2, padx=10, pady=5, sticky="ew")
 button_location.grid(row=4, column=2, padx=10, pady=5, sticky="w")
-button_download.grid(row=6, column=1, padx=10, pady=10)
+button_download.grid(row=6, column=1, columnspan=2, padx=10, pady=10,sticky='ew')
 
 # Configure grid weights for better layout management
 root.grid_columnconfigure(0, weight=1)
