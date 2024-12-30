@@ -214,11 +214,6 @@ treeview.column("URL", anchor="w", width=0, stretch=False)
 treeview.column("Title", anchor="w", width=200)
 treeview.column("Length (minutes)", anchor="center", width=150, stretch=False)
 
-# # Add Scrollbars
-# scrollbar = ttk.Scrollbar(root, orient="vertical", command=treeview.yview)
-# treeview.configure(yscroll=scrollbar.set)
-# scrollbar.grid(row=5, column=4, sticky="ns")
-
 # Label and dropdown to select video quality
 label_quality = ttk.Label(root, text="Select quality:")
 
