@@ -41,7 +41,8 @@ def return_video_details(url):
     yt = YouTube(url)
     yt_title = yt.title
     length = getVidLength(yt)
-    return (url, yt_title, length)
+    year = yt.publish_date.date().year
+    return (url, yt_title, length, year)
 
 
 def display_video_details_individual(url):
@@ -87,7 +88,7 @@ def display_video_details_search(keywords):
 
 def add_to_table(data):
     for idx, data in enumerate(data):
-        treeview.insert("", "end", values=(idx+1, data[0], data[1], data[2]))
+        treeview.insert("", "end", values=(idx+1, data[0], data[1], data[2], data[3]))
 
 def on_search():
     progress_bar.grid(row=7, column=0, columnspan=4, padx=10, pady=10, sticky="ew")
@@ -147,13 +148,16 @@ def download_video():
 def download_selected_video(url, save_path):
     try:
         yt = YouTube(url)
-        streams = yt.streams.filter(file_extension="mp4")
-        if quality_var.get() == "Best quality":
-            res = streams.get_highest_resolution()
+        if format_var == "Video":
+            streams = yt.streams.filter(file_extension="mp4")
+            if quality_var.get() == "Best quality":
+                res = streams.get_highest_resolution()
+            else:
+                res = streams.get_lowest_resolution()
+            res.download(output_path=save_path)
         else:
-            res = streams.get_lowest_resolution()
-        res = streams.get_highest_resolution()
-        res.download(output_path=save_path)
+            streams = yt.streams.get_audio_only()
+            streams.download(output_path=save_path)
     except Exception as e:
         print(e)
 
@@ -182,7 +186,6 @@ format_var.set("Video")
 
 # Radio buttons for video input
 radio_var = tk.StringVar()
-
 radio_url = ttk.Radiobutton(root, text="By URL", variable=radio_var, value="URL")
 radio_playlist = ttk.Radiobutton(root, text="By Playlist", variable=radio_var, value="Playlist")
 radio_channel = ttk.Radiobutton(root, text="By Channel", variable=radio_var, value="Channel")
@@ -198,7 +201,7 @@ add_placeholder(entry, "Enter link for individual URL, Playlist, Channel, or key
 
 # Table in form of treeview to display video details
 
-columns = ("#", "URL", "Title", "Length (minutes)")
+columns = ("#", "URL", "Title", "Length (minutes)", "Upload year")
 
 # Create the Treeview widget (table) with extended selection mode
 treeview = ttk.Treeview(root, columns=columns, show="headings", selectmode="extended")
@@ -208,11 +211,13 @@ treeview.heading("#", text="No.")
 treeview.heading("URL", text="URL")
 treeview.heading("Title", text="Title")
 treeview.heading("Length (minutes)", text="Length (minutes)")
+treeview.heading("Upload year", text="Upload year")
 
 treeview.column("#", anchor="center", width=50, stretch=False)
 treeview.column("URL", anchor="w", width=0, stretch=False)
 treeview.column("Title", anchor="w", width=200)
 treeview.column("Length (minutes)", anchor="center", width=150, stretch=False)
+treeview.column("Upload year", anchor="center", width=0,stretch=True)
 
 # Label and dropdown to select video quality
 label_quality = ttk.Label(root, text="Select quality:")
