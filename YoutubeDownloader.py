@@ -147,13 +147,16 @@ def download_video():
 def download_selected_video(url, save_path):
     try:
         yt = YouTube(url)
-        streams = yt.streams.filter(file_extension="mp4")
-        if quality_var.get() == "Best quality":
-            res = streams.get_highest_resolution()
+        if format_var == "Video":
+            streams = yt.streams.filter(file_extension="mp4")
+            if quality_var.get() == "Best quality":
+                res = streams.get_highest_resolution()
+            else:
+                res = streams.get_lowest_resolution()
+            res.download(output_path=save_path)
         else:
-            res = streams.get_lowest_resolution()
-        res = streams.get_highest_resolution()
-        res.download(output_path=save_path)
+            streams = yt.streams.get_audio_only()
+            streams.download(output_path=save_path)
     except Exception as e:
         print(e)
 
